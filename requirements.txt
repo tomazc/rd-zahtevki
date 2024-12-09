@@ -1,0 +1,6 @@
+altair
+openpyxl
+pandas
+xlrd
+streamlit
+xlsxwriter
