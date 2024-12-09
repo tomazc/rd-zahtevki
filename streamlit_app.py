@@ -13,7 +13,7 @@ import calculations
 *Tomaž Curk, UL FRI, 2024*
 
 ### Oblika vhodne datoteke
-Program sprejme datoteko v formatu .xlsx. Datoteka mora vsebovati naslednje zavihke:
+Program sprejme datoteko v formatu Excel (`.xlsx`). Datoteka mora vsebovati naslednje zavihke:
 
 - FN: celoletni finančni načrt. Za vsak PPS v svoji vrstici navedi: Plače, Prispevki, MS, AM
 - najave: najave sredstev za vsak mesec v letu. Za vsak mesec v svoji vrstici navedi: Plače, Prispevki, MS, AM
@@ -42,7 +42,9 @@ Program dela na dva načina:
 
 ## Uporabi
 
-Naloži datoteko v formatu .xlsx in pritisni gumb "Izračunaj zahtevke".
+Naloži datoteko v formatu Excel (`.xlsx`) in izračun se bo zagnal samodejno.
+
+Po končanem izračunu se bo prikazal gumb "Prenesi izračunane zahtevke" za prenos v obliki datoteke Excel (`.xlsx`).
 """
 
 fdata = st.file_uploader("Naloži datoteke Excel", type={"xlsx"})
