@@ -7,8 +7,11 @@ import streamlit as st
 
 import calculations
 
-"""
+__version__ = "1.0.1 (2024-12-19)"
+
+f"""
 # Zahtevki ARIS
+verzija {__version__}
 
 *Tomaž Curk, UL FRI, 2024*
 
@@ -57,7 +60,12 @@ if fdata:
     st.write(f'Podatki za mesece: {", ".join(meseci)}')
 
     st.write("## Izračun zahtevkov")
-    zahtevki, file_to_download, ret_log = calculations.calculate(FN, najave, fakturirano, meseci)
+    zahtevki, file_to_download, ret_log, critical_errors = calculations.calculate(FN, najave, fakturirano, meseci)
+
+    if critical_errors:
+        st.write("### Kritične napake")
+        for e in critical_errors:
+            st.write(e)
 
     st.download_button(
     label="Prenesi izračunane zahtevke",

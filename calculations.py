@@ -91,6 +91,7 @@ def read_data(fn_budget):
 # izračunaj zahtevek
 def calculate(FN, najave, fakturirano, meseci):
     ret_log = []
+    critical_errors = []
     vsota_fakturirano = {}
 
     def nice_format(vals):
@@ -246,12 +247,14 @@ def calculate(FN, najave, fakturirano, meseci):
         else:
             if not nonnegative_FN:
                 ret_log.append("NAPAKA, po izvedenih zahtevkih bo fakturirano stanje negativno")
-                assert nonnegative_FN
+                critical_errors.append(
+                    f"{rp}: po izvedenih zahtevkih bo fakturirano stanje negativno.")
             else:
                 ret_log.append(
                     "NAPAKA, po izvedenih zahtevkih bo fakturirano višje od finančnega načrta"
                 )
-            assert within_FN
+                critical_errors.append(
+                    f"{rp}: po izvedenih zahtevkih bo fakturirano višje od finančnega načrta.")
         ret_log.append('')
     ret_log.append("KONEC.")
-    return records_zahtevek, file_to_download, ret_log
+    return records_zahtevek, file_to_download, ret_log, critical_errors
