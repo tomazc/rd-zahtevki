@@ -7,7 +7,7 @@ import streamlit as st
 
 import calculations
 
-__version__ = "1.0.1 (2024-12-19)"
+__version__ = "1.0.2 (2026-02-11)"
 
 f"""
 # Zahtevki ARIS
