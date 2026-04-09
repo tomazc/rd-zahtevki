@@ -212,7 +212,7 @@ def calculate(FN, najave, fakturirano, meseci):
                 ret_log.append("pozor, se NE ujema")
                 ret_log.append(f"najava: {na_str}")
                 ret_log.append(f"zahtevek: {za_str}")
-                critical_errors.append(f"{mesec}: zneski najave {na_str} in zahtevka {za_str} se ne ujemajo. Preveri FN, prejeto najave in izračunane zahtevke.")
+                critical_errors.append(f"{mesec}: zneski najave {na_str} in zahtevka {za_str} se ne ujemajo. Preveri FN, prejete najave in izračunane zahtevke.")
             update_vsota_fakturirano(zahtevek[mesec])
 
         ret_log.append('')
