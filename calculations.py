@@ -112,11 +112,15 @@ def calculate(FN, najave, fakturirano, meseci):
 
         exact_vals = []
         for v in v_vals:
-            if v < 0.0:
+            if v <= decimal.Decimal(0.0):
                 v = v  # do not modify negative values, the entire amount has to be taken from account
             else:
                 # the negative part has to be subdivided among the positive values
-                v = (v_ref + (-v_neg_sum)) * v / (v_vals_sum + (-v_neg_sum))
+                diff = (v_vals_sum + (-v_neg_sum))
+                if diff == 0.0:
+                    v = decimal.Decimal(0.0)
+                else:
+                    v = (v_ref + (-v_neg_sum)) * v / diff
             exact_vals.append(v)
 
         rounded_vals = [remove_exponent(decimal.Decimal(v))
@@ -125,6 +129,8 @@ def calculate(FN, najave, fakturirano, meseci):
         while sum(rounded_vals) != v_ref:
             dif = [(x - y, i) for (i, (x, y)) in enumerate(zip(exact_vals,
                                                                rounded_vals)) if i not in i_skip_neg]
+            if not dif:
+                break
 
             rounded_dif = sum(rounded_vals) - v_ref
             if rounded_dif > 0:
@@ -155,9 +161,12 @@ def calculate(FN, najave, fakturirano, meseci):
                 if na == fa:
                     ret_log.append("se ujema")
                 else:
+                    na_str = ", ".join([f"{x:.2f}" for x in na])
+                    fa_str = ", ".join([f"{x:.2f}" for x in fa])
                     ret_log.append("pozor, se NE ujema")
-                    ret_log.append("najava:     ", na)
-                    ret_log.append("fakturirano:", fa)
+                    ret_log.append(f"najava: {na_str}")
+                    ret_log.append(f"fakturirano: {fa_str}")
+                    critical_errors.append(f"{mesec}: zneski najave {na_str} in fakturirano {fa_str} se ne ujemajo. Preveri FN, najave in fakturirano za izdane zahtevke.")
                 update_vsota_fakturirano(fakturirano[mesec])
             else:
                 ret_log.append("napaka... za mesec ni najave")
@@ -198,9 +207,12 @@ def calculate(FN, najave, fakturirano, meseci):
             if na == za:
                 ret_log.append("se ujema")
             else:
+                na_str = ", ".join([f"{x:.2f}" for x in na])
+                za_str = ", ".join([f"{x:.2f}" for x in za])
                 ret_log.append("pozor, se NE ujema")
-                ret_log.append("najava:     ", na)
-                ret_log.append("zahtevek:", za)
+                ret_log.append(f"najava: {na_str}")
+                ret_log.append(f"zahtevek: {za_str}")
+                critical_errors.append(f"{mesec}: zneski najave {na_str} in zahtevka {za_str} se ne ujemajo. Preveri FN, prejeto najave in izračunane zahtevke.")
             update_vsota_fakturirano(zahtevek[mesec])
 
         ret_log.append('')
@@ -256,5 +268,5 @@ def calculate(FN, najave, fakturirano, meseci):
                 critical_errors.append(
                     f"{rp}: po izvedenih zahtevkih bo fakturirano višje od finančnega načrta.")
         ret_log.append('')
-    ret_log.append("KONEC.")
+    ret_log.append("KONEC")
     return records_zahtevek, file_to_download, ret_log, critical_errors

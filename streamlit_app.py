@@ -7,13 +7,13 @@ import streamlit as st
 
 import calculations
 
-__version__ = "1.0.2 (2026-02-11)"
+__version__ = "1.0.3 (2026-04-09)"
 
 f"""
 # Zahtevki ARIS
 verzija {__version__}
 
-*Tomaž Curk, UL FRI, 2024*
+*Tomaž Curk, UL FRI, 2026*
 
 ### Oblika vhodne datoteke
 Program sprejme datoteko v formatu Excel (`.xlsx`). Datoteka mora vsebovati naslednje zavihke:
@@ -63,9 +63,9 @@ if fdata:
     zahtevki, file_to_download, ret_log, critical_errors = calculations.calculate(FN, najave, fakturirano, meseci)
 
     if critical_errors:
-        st.write("### Kritične napake")
+        st.error("### Kritične napake")
         for e in critical_errors:
-            st.write(e)
+            st.error(e)
 
     st.download_button(
     label="Prenesi izračunane zahtevke",

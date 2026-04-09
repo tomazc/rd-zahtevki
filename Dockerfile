@@ -7,9 +7,16 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
-    software-properties-common \
     git \
     && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && \
+    if apt-cache show software-properties-common >/dev/null 2>&1; then \
+        apt-get install -y software-properties-common; \
+    else \
+        echo "software-properties-common not available in this base image, skipping"; \
+    fi && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN git clone https://github.com/streamlit/streamlit-example.git .
 
