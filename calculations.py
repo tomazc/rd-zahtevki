@@ -18,6 +18,9 @@ def remove_exponent(num):
 # fn_budget = f"budget_{suffix}.xlsx"
 # fn_odprti_zahtevki = f"odprti_zahtevki_{suffix}.xlsx"
 
+# vrstni red kategorij, ki se uporablja pri izpisu in preverjanju
+kategorije = ["Plače", "Prispevki", "MS", "AM"]
+
 # preberi finančni načrt
 def read_data(fn_budget):
     ret_log = []
@@ -28,7 +31,7 @@ def read_data(fn_budget):
     df = df.fillna("")  # fill empty cells with empty string '', not nan
     d = df.to_dict()
 
-    cols = ["PPS", "Plače", "Prispevki", "MS", "AM"]
+    cols = ["PPS"] + kategorije
     tabular_data = list(zip(*[d[c].values() for c in cols]))
     FN = {}
     for rp, place, prispevki, ms, am in tabular_data:
@@ -48,7 +51,7 @@ def read_data(fn_budget):
     df = df.fillna("")  # fill empty cells with empty string '', not nan
     d = df.to_dict()
 
-    cols = ["Mesec", "Plače", "Prispevki", "MS", "AM"]
+    cols = ["Mesec"] + kategorije
     tabular_data = list(zip(*[d[c].values() for c in cols]))
     najave = {}
     meseci = []
@@ -73,7 +76,7 @@ def read_data(fn_budget):
     df = df.fillna("")  # fill empty cells with empty string '', not nan
     d = df.to_dict()
 
-    cols = ["PPS", "Mesec", "Plače", "Prispevki", "MS", "AM"]
+    cols = ["PPS", "Mesec"] + kategorije
     tabular_data = list(zip(*[d[c].values() for c in cols]))
     fakturirano = {}
     for rp, mesec, place, prispevki, ms, am in tabular_data:
@@ -94,8 +97,13 @@ def calculate(FN, najave, fakturirano, meseci):
     critical_errors = []
     vsota_fakturirano = {}
 
+    def f_money(x):
+        # values are money, should use comma for decimal place, and dot for thousdands separator
+        return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
     def nice_format(vals):
-        return ", ".join([f"{x:.2f}" for x in vals])
+        # values are money, should use comma for decimal place, and dot for thousdands separator
+        return ", ".join([f"{k}: {f_money(x)}" for k, x in zip(kategorije, vals)]+[f"vsota: {f_money(sum(vals))}"])
 
     def update_vsota_fakturirano(fakturirano_mesec):
         for rp, fak_mesec in fakturirano_mesec.items():
@@ -161,11 +169,13 @@ def calculate(FN, najave, fakturirano, meseci):
                 if na == fa:
                     ret_log.append("se ujema")
                 else:
-                    na_str = ", ".join([f"{x:.2f}" for x in na])
-                    fa_str = ", ".join([f"{x:.2f}" for x in fa])
+                    na_str = ", ".join([f"{k}: {f_money(x)}" for k, x in zip(kategorije, na)]+[f"vsota: {f_money(sum(na))}"])
+                    fa_str = ", ".join([f"{k}: {f_money(x)}" for k, x in zip(kategorije, fa)]+[f"vsota: {f_money(sum(fa))}"])
                     ret_log.append("pozor, se NE ujema")
-                    ret_log.append(f"najava: {na_str}")
-                    ret_log.append(f"fakturirano: {fa_str}")
+                    ret_log.append("najava:")
+                    ret_log.append(f"\t{na_str}")
+                    ret_log.append("fakturirano:")
+                    ret_log.append(f"\t{fa_str}")
                     critical_errors.append(f"{mesec}: zneski najave {na_str} in fakturirano {fa_str} se ne ujemajo. Preveri FN, najave in fakturirano za izdane zahtevke.")
                 update_vsota_fakturirano(fakturirano[mesec])
             else:
@@ -207,11 +217,13 @@ def calculate(FN, najave, fakturirano, meseci):
             if na == za:
                 ret_log.append("se ujema")
             else:
-                na_str = ", ".join([f"{x:.2f}" for x in na])
-                za_str = ", ".join([f"{x:.2f}" for x in za])
+                na_str = ", ".join([f"{k}: {f_money(x)}" for k, x in zip(kategorije, na)]+[f"vsota: {f_money(sum(na))}"])
+                za_str = ", ".join([f"{k}: {f_money(x)}" for k, x in zip(kategorije, za)]+[f"vsota: {f_money(sum(za))}"])
                 ret_log.append("pozor, se NE ujema")
-                ret_log.append(f"najava: {na_str}")
-                ret_log.append(f"zahtevek: {za_str}")
+                ret_log.append("najava:")
+                ret_log.append(f"\t{na_str}\n")
+                ret_log.append("zahtevek:")
+                ret_log.append(f"\t{za_str}")
                 critical_errors.append(f"{mesec}: zneski najave {na_str} in zahtevka {za_str} se ne ujemajo. Preveri FN, prejete najave in izračunane zahtevke.")
             update_vsota_fakturirano(zahtevek[mesec])
 
@@ -220,8 +232,7 @@ def calculate(FN, najave, fakturirano, meseci):
     # save to disk
     file_to_download = io.BytesIO()
     df1 = pandas.DataFrame(
-        records_zahtevek, columns=["PPS", "Mesec",
-                                   "Plače", "Prispevki", "MS", "AM"]
+        records_zahtevek, columns=["PPS", "Mesec"] + kategorije
     )
     writer = pandas.ExcelWriter(file_to_download, engine="xlsxwriter")
     df1.to_excel(writer, index=False, sheet_name="zahtevki")
