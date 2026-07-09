@@ -79,6 +79,7 @@ def read_data(fn_budget):
     cols = ["PPS", "Mesec"] + kategorije
     tabular_data = list(zip(*[d[c].values() for c in cols]))
     fakturirano = {}
+    fakturirano_byrp = {}
     for rp, mesec, place, prispevki, ms, am in tabular_data:
         assert rp == rp.strip()
         place = remove_exponent(decimal.Decimal(place))
@@ -88,11 +89,16 @@ def read_data(fn_budget):
         v = (place, prispevki, ms, am)
         assert fakturirano.setdefault(mesec, {}).setdefault(rp, v) == v
 
-    return FN, najave, fakturirano, meseci, ret_log
+        # update fakturirano_byrp
+        fak_vsota = fakturirano_byrp.get(rp, (0, 0, 0, 0))
+        fak_vsota = list(x + y for x, y in zip(fak_vsota, v))
+        fakturirano_byrp[rp] = fak_vsota
+
+    return FN, najave, fakturirano, fakturirano_byrp, meseci, ret_log
 
 
 # izračunaj zahtevek
-def calculate(FN, najave, fakturirano, meseci):
+def calculate(FN, najave, fakturirano, fakturirano_byrp, meseci):
     ret_log = []
     critical_errors = []
     vsota_fakturirano = {}
@@ -111,16 +117,27 @@ def calculate(FN, najave, fakturirano, meseci):
             fak_vsota = list(x + y for x, y in zip(fak_vsota, fak_mesec))
             vsota_fakturirano[rp] = fak_vsota
 
-    def scale_vals(v_ref, v_vals):
-        v_vals_sum = sum(v_vals)
-        # separate negative and positive
+    def sum_fakturirano(fakturirano_rp):
+        return tuple([sum(x) for x in list(zip(*fakturirano_rp))])
+
+    def scale_vals(v_ref, v_vals, neg_fak):
+        # v_ref is the amount to be distributed
+        # v_vals is the difference between current fakturirano and FN (FN - fakturirano)
+        #  if v_vals is negative, it means that fakturirano is higher than FN, and the difference has to be taken and moved to other projects within the same category.
+        #      If there is some remaining amount, it should be moved to other categories.
+        #
+        #  if v_vals is positive, it means that fakturirano is lower than FN, and the amount has to be distributed proportionally to the differences.
+        v_vals_sum = sum(v_vals) # current sum of differences
+
+        # separate negative and positive differences
+        #   negative difference: take from the account
+        #   positive diffrence: distribute proportionally
         v_neg_sum = sum([v for v in v_vals if v <= decimal.Decimal(0.0)])
-        i_skip_neg = [i for i, v in enumerate(
-            v_vals) if v <= decimal.Decimal(0.0)]
+        i_skip_neg = [i for i, v in enumerate(v_vals) if v <= decimal.Decimal(0.0)]
 
         exact_vals = []
-        for v in v_vals:
-            if v <= decimal.Decimal(0.0):
+        for v, n in zip(v_vals, neg_fak):
+            if v <= decimal.Decimal(0.0) or n == True:
                 v = v  # do not modify negative values, the entire amount has to be taken from account
             else:
                 # the negative part has to be subdivided among the positive values
@@ -190,6 +207,7 @@ def calculate(FN, najave, fakturirano, meseci):
             # calculate difference between expected FN and current running sum of fakturirano
             rps = []
             dif_vals = []
+            neg_fak_vals = []
             for rp, fn_vrednosti in FN.items():
                 fak_vrednosti = vsota_fakturirano.get(rp, (decimal.Decimal(
                     0.0), decimal.Decimal(0.0), decimal.Decimal(0.0), decimal.Decimal(0.0)))
@@ -197,11 +215,13 @@ def calculate(FN, najave, fakturirano, meseci):
                     x - y for x, y in zip(fn_vrednosti, fak_vrednosti))
                 rps.append(rp)
                 dif_vals.append(dif_vrednosti)
+                neg_fak_vals.append([v < 0 for v in fak_vrednosti])
             dif_vals = list(zip(*dif_vals))
+            neg_fak_vals = list(zip(*neg_fak_vals))
 
             scaled_vals = []
-            for v_najave, v_dif in zip(najave[mesec], dif_vals):
-                scaled_v_dif = scale_vals(v_najave, v_dif)
+            for v_najave, v_dif, neg_fak in zip(najave[mesec], dif_vals, neg_fak_vals):
+                scaled_v_dif = scale_vals(v_najave, v_dif, neg_fak)
                 scaled_vals.append(scaled_v_dif)
 
             zahtevek[mesec] = {}
@@ -254,10 +274,12 @@ def calculate(FN, najave, fakturirano, meseci):
         ret_log.append(f"#### {rp}")
         ret_log.append(f"finančni načrt:          ")
         ret_log.append(f"\t{nice_format(vals_FN)}")
+        ret_log.append(f"fakturirano pred izdajo odprtih zahtevkov:")
+        ret_log.append(f"\t{nice_format(fakturirano_byrp.get(rp, [0, 0, 0, 0]))}")
         for mesec in odprti_meseci:
-            ret_log.append(f'zahtevek za: {mesec}')
+            ret_log.append(f'odprt zahtevek za: {mesec}')
             ret_log.append(f'\t{nice_format(zahtevek[mesec][rp])}')
-        ret_log.append(f"fakturirano po zahtevkih:")
+        ret_log.append(f"bo fakturirano po prejemu odprtih zahtevkov:")
         ret_log.append(f"\t{nice_format(vals_fak)}")
         within_FN = all(x <= y for x, y in zip(vals_fak, vals_FN))
         nonnegative_FN = all(x >= 0.0 for x in vals_fak)

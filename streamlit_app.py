@@ -7,7 +7,7 @@ import streamlit as st
 
 import calculations
 
-__version__ = "1.0.3 (2026-04-09)"
+__version__ = "1.0.4 (2026-07-09)"
 
 f"""
 # Zahtevki ARIS
@@ -53,14 +53,14 @@ Po končanem izračunu se bo prikazal gumb "Prenesi izračunane zahtevke" za pre
 fdata = st.file_uploader("Naloži datoteke Excel", type={"xlsx"})
 
 if fdata:
-    FN, najave, fakturirano, meseci, ret_log = calculations.read_data(fdata)
+    FN, najave, fakturirano, fakturirano_byrp, meseci, ret_log = calculations.read_data(fdata)
 
     st.write("## Podatki prebrani")
     st.write(f'Ime naložene datoteke: {fdata.name}')
     st.write(f'Podatki za mesece: {", ".join(meseci)}')
 
     st.write("## Izračun zahtevkov")
-    zahtevki, file_to_download, ret_log, critical_errors = calculations.calculate(FN, najave, fakturirano, meseci)
+    zahtevki, file_to_download, ret_log, critical_errors = calculations.calculate(FN, najave, fakturirano, fakturirano_byrp, meseci)
 
     if critical_errors:
         st.error("### Kritične napake")
